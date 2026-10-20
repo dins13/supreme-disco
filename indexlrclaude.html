@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Game Core — компьютерный клуб</title>
+<meta name="description" content="Game Core — компьютерный клуб с мощными ПК, топовыми видеокартами и низким пингом. Тарифы, расписание и онлайн-бронирование.">
+<meta name="theme-color" content="#0a0b14">
+<style>
+/* ===== Переменные (цвета, размеры) ===== */
+:root{
+  --bg:#0a0b14; --bg2:#11132a; --card:#14172e; --text:#e8eaff; --muted:#9aa0c7;
+  --neon:#00f0ff; --pink:#ff2bd6; --lime:#b6ff3b; --line:rgba(255,255,255,.09);
+  --radius:1rem; --hdr:4.25rem;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--hdr) + env(safe-area-inset-top,0px) + .5rem)}
+body{margin:0;background:var(--bg);color:var(--text);font:1rem/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overflow-x:hidden}
+img,svg{max-width:100%}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{line-height:1.15;margin:0 0 .6em}
+h2{font-size:clamp(1.6rem,4.5vw,2.5rem)}
+h2 span{color:var(--neon);text-shadow:0 0 18px rgba(0,240,255,.5)}
+.wrap{width:min(100% - 2rem,75rem);margin-inline:auto}
+section{padding:clamp(3.5rem,9vw,6rem) 0;position:relative}
+.sub{color:var(--muted);max-width:40rem}
+
+/* ===== Кнопки + hover-микроанимация ===== */
+.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-weight:700;color:#04050c;
+  background:linear-gradient(90deg,var(--neon),var(--pink));padding:.8rem 1.5rem;border-radius:.7rem;
+  box-shadow:0 0 0 rgba(0,240,255,0);transition:transform .25s,box-shadow .25s,filter .25s}
+.btn:hover,.btn:focus-visible{transform:translateY(-3px) scale(1.03);box-shadow:0 8px 28px rgba(0,240,255,.4);filter:brightness(1.1)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn.ghost{background:transparent;color:var(--neon);border:1px solid var(--neon)}
+
+/* ===== Шапка ===== */
+header{position:fixed;inset:0 0 auto 0;z-index:50;padding-top:env(safe-area-inset-top,0px);
+  background:transparent;transition:background .35s,box-shadow .35s,backdrop-filter .35s}
+header.scrolled{background:rgba(10,11,20,.88);backdrop-filter:blur(10px);box-shadow:0 1px 0 var(--line)}
+.bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:var(--hdr);gap:1rem}
+.logo{grid-column:1;justify-self:start;font-weight:800;font-size:1.4rem;letter-spacing:.04em}
+.logo b{color:var(--neon);text-shadow:0 0 14px var(--neon)}
+nav{grid-column:2;justify-self:center}
+nav ul{display:flex;gap:1.6rem;list-style:none;margin:0;padding:0}
+nav a{color:var(--muted);transition:color .2s}
+nav a:hover{color:var(--neon)}
+.bar .btn{grid-column:3;justify-self:end;text-align:center;font-size:1rem;letter-spacing:.02em;padding:.75rem 1.4rem;white-space:nowrap;box-shadow:0 2px 18px rgba(0,240,255,.35)}
+.burger{grid-column:3;justify-self:end;display:none;background:none;border:1px solid var(--line);border-radius:.5rem;width:2.6rem;height:2.6rem;cursor:pointer;color:var(--text)}
+.burger span,.burger span::before,.burger span::after{display:block;width:1.2rem;height:2px;background:currentColor;margin:auto;position:relative;transition:.3s}
+.burger span::before,.burger span::after{content:"";position:absolute;left:0}
+.burger span::before{top:-6px}.burger span::after{top:6px}
+.burger[aria-expanded=true] span{background:transparent}
+.burger[aria-expanded=true] span::before{top:0;transform:rotate(45deg)}
+.burger[aria-expanded=true] span::after{top:0;transform:rotate(-45deg)}
+
+/* ===== Hero ===== */
+.hero{min-height:100vh;display:flex;align-items:center;padding-top:calc(var(--hdr) + 2rem);overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;will-change:transform}
+.b1{width:26rem;height:26rem;background:var(--pink);top:-6rem;right:-8rem}
+.b2{width:22rem;height:22rem;background:var(--neon);bottom:-6rem;left:-8rem}
+.grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;align-items:center;position:relative}
+.hero h1{font-family:ui-monospace,"Courier New",monospace;font-size:clamp(1.6rem,8vw,3.6rem);font-weight:800;margin-bottom:1rem}
+.hero h1 .accent{color:var(--neon);text-shadow:0 0 20px rgba(0,240,255,.6)}
+.hero .btns{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:1.6rem}
+.hero svg{width:100%;height:auto;filter:drop-shadow(0 0 30px rgba(255,43,214,.35))}
+
+/* ===== О клубе ===== */
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:1.2rem;margin-top:2rem}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.4rem;transition:transform .3s,border-color .3s}
+.feat:hover{transform:translateY(-5px);border-color:var(--neon)}
+.feat svg{width:2.6rem;height:2.6rem;stroke:var(--neon);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;margin-bottom:.6rem}
+.feat h3{font-size:1.1rem;margin-bottom:.3rem}.feat p{margin:0;color:var(--muted);font-size:.93rem}
+
+/* ===== Тарифы ===== */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:2rem}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.8rem;display:flex;flex-direction:column;transition:transform .3s,box-shadow .3s}
+.plan:hover{transform:translateY(-6px);box-shadow:0 10px 34px rgba(0,240,255,.15)}
+.plan.hot{border-color:var(--pink);box-shadow:0 0 28px rgba(255,43,214,.2)}
+.price{font-size:2.4rem;font-weight:800;color:var(--lime)}.price small{font-size:1rem;color:var(--muted);font-weight:400}
+.plan ul{list-style:none;padding:0;margin:1rem 0 1.5rem;flex:1}
+.plan li{padding:.35rem 0 .35rem 1.5rem;position:relative;color:var(--muted);border-bottom:1px solid var(--line)}
+.plan li::before{content:"▸";position:absolute;left:0;color:var(--neon)}
+
+/* ===== Расписание и форма ===== */
+.book{display:grid;grid-template-columns:1.2fr 1fr;gap:2rem;margin-top:2rem}
+.days{display:grid;gap:.6rem}
+.day{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:.8rem;padding:.6rem .8rem}
+.day strong{width:2.4rem;color:var(--neon)}
+.slot{font:inherit;font-size:.85rem;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:.4rem;padding:.2rem .55rem;cursor:pointer;transition:.2s}
+.slot:hover{border-color:var(--lime);color:var(--lime)}
+.slot.busy{opacity:.3;text-decoration:line-through;pointer-events:none}
+.slot.sel{background:var(--lime);color:#04050c;border-color:var(--lime)}
+form{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.5rem;display:grid;gap:1rem;align-content:start}
+label{display:grid;gap:.3rem;font-size:.9rem;color:var(--muted)}
+input,textarea{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:.6rem;padding:.7rem .9rem;width:100%;transition:border-color .2s,box-shadow .2s}
+input:focus,textarea:focus{outline:0;border-color:var(--neon);box-shadow:0 0 0 3px rgba(0,240,255,.15)}
+.err{color:#ff5c7a;font-size:.8rem;min-height:1em}
+input.bad,textarea.bad{border-color:#ff5c7a}
+#ok{color:var(--lime);margin:0;min-height:1.4em}
+
+/* ===== Футер ===== */
+footer{border-top:1px solid var(--line);background:var(--bg2);padding:3rem 0 2rem}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:2rem}
+footer h3{font-size:1rem;color:var(--neon)}footer p,footer li{color:var(--muted);margin:.25rem 0}
+footer ul{list-style:none;padding:0;margin:0}
+.soc{display:flex;gap:.8rem;margin-top:.6rem}
+.soc a{width:2.5rem;height:2.5rem;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;transition:.25s}
+.soc a:hover{border-color:var(--pink);transform:translateY(-3px);box-shadow:0 0 14px rgba(255,43,214,.5)}
+.soc svg{width:1.2rem;height:1.2rem;fill:none;stroke:var(--text);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.copy{text-align:center;color:var(--muted);font-size:.85rem;margin-top:2rem}
+
+/* ===== Появление при скролле (Intersection Observer добавляет .in) ===== */
+.reveal{opacity:0;transform:translateY(2rem);transition:opacity .7s ease,transform .7s ease;transition-delay:calc(var(--i,0) * .12s)}
+.reveal.in{opacity:1;transform:none}
+
+/* ===== Адаптив ===== */
+@media (max-width:60rem){
+  .plans{grid-template-columns:1fr}.book,.grid2{grid-template-columns:1fr}
+  .hero svg{max-width:26rem;margin:auto}
+}
+@media (max-width:50rem){
+  .burger{display:block}.bar .btn{display:none}
+  nav{position:absolute;top:100%;left:0;right:0;background:rgba(10,11,20,.97);max-height:0;overflow:hidden;transition:max-height .35s}
+  nav.open{max-height:24rem;border-bottom:1px solid var(--line)}
+  nav ul{flex-direction:column;gap:0;padding:.5rem 1rem 1rem}nav a{display:block;padding:.8rem 0}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}
+  *{transition-duration:.01s!important}
+}
+</style>
+</head>
+<body>
+
+<!-- SVG-спрайт иконок (встроен, без внешних файлов) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-ping" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/></symbol>
+  <symbol id="i-pc" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="12" rx="2"/><path d="M8 21h8M12 15v6"/></symbol>
+  <symbol id="i-gpu" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/><circle cx="9" cy="12" r="2.5"/><circle cx="16" cy="12" r="2.5"/><path d="M5 17v2"/></symbol>
+  <symbol id="i-chair" viewBox="0 0 24 24"><path d="M8 3h8l1 9H7zM6 12h12v3H6zM12 15v4M8 21h8"/></symbol>
+  <symbol id="i-cup" viewBox="0 0 24 24"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 10h2a2 2 0 0 1 0 4h-2M8 2v3M12 2v3"/></symbol>
+  <symbol id="i-tg" viewBox="0 0 24 24"><path d="M21 4 3 11l6 2 2 6 3-4 5 4z"/></symbol>
+  <symbol id="i-ig" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></symbol>
+  <symbol id="i-vk" viewBox="0 0 24 24"><path d="M3 7h3c.5 4 3 6 4 6V7h3v4c1.500-.2 3-2 3.500-4H20c-.5 2.500-2 4-3 4.500 1 .5 3 2 3.500 5h-3c-.6-2-2-3-3.500-3v3h-1C7 17 3.500 12 3 7z"/></symbol>
+</svg>
+
+<!-- ===== ШАПКА ===== -->
+<header id="top">
+  <div class="wrap bar">
+    <a href="#home" class="logo">GAME<b>CORE</b></a>
+    <nav id="menu" aria-label="Главное меню">
+      <ul>
+        <li><a href="#home">Главная</a></li>
+        <li><a href="#about">О клубе</a></li>
+        <li><a href="#plans">Тарифы</a></li>
+        <li><a href="#contacts">Контакты</a></li>
+      </ul>
+    </nav>
+    <a href="#booking" class="btn">Забронировать место</a>
+    <button class="burger" id="burger" aria-label="Меню" aria-expanded="false" aria-controls="menu"><span></span></button>
+  </div>
+</header>
+
+<main>
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="home">
+    <div class="blob b1" data-speed="0.15"></div>
+    <div class="blob b2" data-speed="-0.1"></div>
+    <div class="wrap grid2">
+      <div>
+        <h1>Твоя игровая<br><span class="accent">станция ждёт</span></h1>
+        <p class="sub">Топовое железо, мгновенный отклик и атмосфера, в которой хочется побеждать. Приходи один или с командой.</p>
+        <div class="btns"><a href="#booking" class="btn">Забронировать</a><a href="#plans" class="btn ghost">Смотреть тарифы</a></div>
+      </div>
+      <!-- Иллюстрация игрового места (встроенный SVG) -->
+      <svg viewBox="0 0 400 320" role="img" aria-label="Игровое место: монитор, клавиатура и кресло">
+        <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#00f0ff"/><stop offset="1" stop-color="#ff2bd6"/></linearGradient></defs>
+        <rect x="50" y="30" width="300" height="180" rx="12" fill="#0d1026" stroke="url(#g)" stroke-width="3"/>
+        <path d="M70 180 L120 120 L160 160 L210 90 L260 150 L330 70" fill="none" stroke="url(#g)" stroke-width="3"/>
+        <circle cx="210" cy="90" r="5" fill="#b6ff3b"/>
+        <path d="M185 210h30l10 30h-50zM140 240h120" stroke="#5a60a0" stroke-width="6" fill="#1a1e40"/>
+        <rect x="90" y="262" width="220" height="26" rx="6" fill="#14172e" stroke="#00f0ff" stroke-width="2"/>
+        <g fill="#00f0ff" opacity=".7"><rect x="102" y="270" width="14" height="10" rx="2"/><rect x="122" y="270" width="14" height="10" rx="2"/><rect x="142" y="270" width="80" height="10" rx="2"/><rect x="228" y="270" width="14" height="10" rx="2"/><rect x="248" y="270" width="14" height="10" rx="2"/></g>
+        <circle cx="330" cy="272" r="12" fill="#14172e" stroke="#ff2bd6" stroke-width="2"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ===== О КЛУБЕ ===== -->
+  <section id="about">
+    <div class="wrap">
+      <div class="reveal">
+        <h2>О клубе <span>Game Core</span></h2>
+        <p class="sub">Мы создали пространство для тех, кто играет всерьёз: от казуальных вечеров до турнирных тренировок. Всё железо обновляется каждый год.</p>
+      </div>
+      <div class="feats">
+        <article class="feat reveal" style="--i:0"><svg><use href="#i-ping"/></svg><h3>Низкий пинг</h3><p>Выделенный оптоволоконный канал, отклик до 5 мс.</p></article>
+        <article class="feat reveal" style="--i:1"><svg><use href="#i-pc"/></svg><h3>Мощные ПК</h3><p>Современные процессоры, быстрые SSD, 240 Гц мониторы.</p></article>
+        <article class="feat reveal" style="--i:2"><svg><use href="#i-gpu"/></svg><h3>Топовые видеокарты</h3><p>RTX последнего поколения для максимальных настроек.</p></article>
+        <article class="feat reveal" style="--i:3"><svg><use href="#i-chair"/></svg><h3>Удобные кресла</h3><p>Эргономика для многочасовых сессий без усталости.</p></article>
+        <article class="feat reveal" style="--i:4"><svg><use href="#i-cup"/></svg><h3>Зона отдыха</h3><p>Диваны, приставки, кофе и закуски между катками.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ТАРИФЫ ===== -->
+  <section id="plans">
+    <div class="wrap">
+      <div class="reveal"><h2>Наши <span>тарифы</span></h2><p class="sub">Выбери формат под свой стиль игры. Пакеты часов действуют 30 дней.</p></div>
+      <div class="plans">
+        <article class="plan reveal" style="--i:0"><h3>Стандарт</h3><div class="price">150 ₽<small> / час</small></div>
+          <ul><li>Игровой ПК среднего уровня</li><li>Монитор 144 Гц</li><li>Игровая периферия</li><li>Общий зал</li></ul>
+          <button class="btn ghost" data-plan="Стандарт">Выбрать</button></article>
+        <article class="plan hot reveal" style="--i:1"><h3>Про</h3><div class="price">250 ₽<small> / час</small></div>
+          <ul><li>RTX-видеокарта, 240 Гц</li><li>Механическая клавиатура</li><li>Кресло премиум-класса</li><li>Напиток в подарок</li></ul>
+          <button class="btn" data-plan="Про">Выбрать</button></article>
+        <article class="plan reveal" style="--i:2"><h3>VIP-комната</h3><div class="price">400 ₽<small> / час</small></div>
+          <ul><li>Топовая конфигурация</li><li>Отдельная комната на 4–5 мест</li><li>Приставка и большой ТВ</li><li>Обслуживание в комнате</li></ul>
+          <button class="btn ghost" data-plan="VIP-комната">Выбрать</button></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== РАСПИСАНИЕ И БРОНИРОВАНИЕ ===== -->
+  <section id="booking">
+    <div class="wrap">
+      <div class="reveal"><h2>Расписание и <span>бронирование</span></h2><p class="sub">Нажми на свободный час — он подставится в форму. Зачёркнутые часы заняты.</p></div>
+      <div class="book">
+        <div class="days reveal" id="days" aria-label="Свободные часы по дням недели"></div>
+        <form id="form" class="reveal" novalidate>
+          <label>Имя<input name="name" type="text" autocomplete="name" placeholder="Алексей"><span class="err"></span></label>
+          <label>Телефон<input name="phone" type="tel" autocomplete="tel" placeholder="+7 900 123-45-67"><span class="err"></span></label>
+          <label>Желаемое время<input name="time" id="time" type="text" placeholder="Пт, 20:00"><span class="err"></span></label>
+          <label>Комментарий<textarea name="msg" rows="3" placeholder="Тариф, число людей, пожелания"></textarea><span class="err"></span></label>
+          <button class="btn" type="submit">Отправить заявку</button>
+          <p id="ok" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== ФУТЕР ===== -->
+<footer id="contacts">
+  <div class="wrap">
+    <div class="fgrid">
+      <div><h3>Контакты</h3><p>г. Москва, ул. Игровая, 12</p><p><a href="tel:+79001234567">+7 900 123-45-67</a></p>
+        <div class="soc">
+          <a href="#" aria-label="Telegram"><svg><use href="#i-tg"/></svg></a>
+          <a href="#" aria-label="Instagram"><svg><use href="#i-ig"/></svg></a>
+          <a href="#" aria-label="VK"><svg><use href="#i-vk"/></svg></a>
+        </div></div>
+      <div><h3>Время работы</h3><p>Пн–Чт: 10:00 – 02:00</p><p>Пт–Вс: круглосуточно</p></div>
+      <div><h3>Меню</h3><ul><li><a href="#home">Главная</a></li><li><a href="#about">О клубе</a></li><li><a href="#plans">Тарифы</a></li><li><a href="#booking">Бронирование</a></li></ul></div>
+    </div>
+    <p class="copy">© 2026 Game Core. Все права защищены.</p>
+  </div>
+</footer>
+
+<script>
+/* ===== Бургер-меню ===== */
+const burger = document.getElementById('burger'), menu = document.getElementById('menu');
+burger.addEventListener('click', () => {
+  const open = menu.classList.toggle('open');
+  burger.setAttribute('aria-expanded', open);
+});
+menu.addEventListener('click', e => { if (e.target.tagName === 'A') { menu.classList.remove('open'); burger.setAttribute('aria-expanded', false); } });
+
+/* ===== Шапка при скролле + лёгкий параллакс фоновых элементов ===== */
+const header = document.querySelector('header'), blobs = document.querySelectorAll('.blob');
+let ticking = false;
+function onScroll() {
+  header.classList.toggle('scrolled', window.scrollY > 40);
+  blobs.forEach(b => b.style.transform = `translateY(${window.scrollY * b.dataset.speed}px)`);
+  ticking = false;
+}
+window.addEventListener('scroll', () => { if (!ticking) { requestAnimationFrame(onScroll); ticking = true; } }, { passive: true });
+onScroll();
+
+/* ===== Плавное появление блоков (Intersection Observer) ===== */
+const io = new IntersectionObserver((entries, obs) => {
+  entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); obs.unobserve(en.target); } });
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+/* ===== Расписание: генерируем дни и часы ===== */
+const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'], hours = ['12:00','14:00','16:00','18:00','20:00','22:00'];
+const timeInput = document.getElementById('time'), daysBox = document.getElementById('days');
+days.forEach((d, di) => {
+  const row = document.createElement('div'); row.className = 'day';
+  row.innerHTML = `<strong>${d}</strong>`;
+  hours.forEach((h, hi) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'slot'; b.textContent = h;
+    if ((di * 3 + hi * 5) % 7 === 0) b.classList.add('busy'); // условно занятые часы (демо)
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.slot.sel').forEach(s => s.classList.remove('sel'));
+      b.classList.add('sel'); timeInput.value = `${d}, ${h}`; timeInput.classList.remove('bad');
+    });
+    row.appendChild(b);
+  });
+  daysBox.appendChild(row);
+});
+
+/* ===== Кнопки «Выбрать» в тарифах → комментарий в форме ===== */
+document.querySelectorAll('[data-plan]').forEach(b => b.addEventListener('click', () => {
+  form.msg.value = `Тариф: ${b.dataset.plan}`;
+  document.getElementById('booking').scrollIntoView({ behavior: 'smooth' });
+}));
+
+/* ===== Валидация формы ===== */
+const form = document.getElementById('form'), ok = document.getElementById('ok');
+const rules = {
+  name:  v => v.trim().length >= 2 ? '' : 'Введите имя (минимум 2 символа)',
+  phone: v => /^\+?[\d\s()\-]{10,18}$/.test(v.trim()) ? '' : 'Введите корректный номер телефона',
+  time:  v => v.trim().length >= 3 ? '' : 'Укажите желаемое время',
+  msg:   v => v.length <= 300 ? '' : 'Не более 300 символов'
+};
+function check(field) {
+  const msg = rules[field.name](field.value);
+  field.classList.toggle('bad', !!msg);
+  field.parentElement.querySelector('.err').textContent = msg;
+  return !msg;
+}
+[...form.elements].filter(f => rules[f.name]).forEach(f => f.addEventListener('input', () => check(f)));
+form.addEventListener('submit', e => {
+  e.preventDefault(); ok.textContent = '';
+  const valid = [...form.elements].filter(f => rules[f.name]).map(check).every(Boolean);
+  if (valid) { ok.textContent = '✔ Заявка отправлена! Мы перезвоним вам в ближайшее время.'; form.reset(); }
+});
+</script>
+</body>
+</html>
